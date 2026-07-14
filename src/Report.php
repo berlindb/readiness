@@ -44,6 +44,31 @@ final class Report {
 	}
 
 	/**
+	 * Merge several reports into one combined readiness report.
+	 *
+	 * Used to fold a consumer's separate dimensions - column flags and the curated
+	 * relationship/meta matrix - into a single score and badge. Rows are keyed in
+	 * distinct namespaces (flag names vs capability names), so a later report only
+	 * overrides an earlier one on a genuine key clash.
+	 *
+	 * @param string $consumer Consumer label for the merged report.
+	 * @param Report ...$reports Reports to merge, in order.
+	 * @return Report
+	 */
+	public static function combine( string $consumer, Report ...$reports ): Report {
+
+		$rows = array();
+
+		foreach ( $reports as $report ) {
+			foreach ( $report->rows() as $key => $row ) {
+				$rows[ $key ] = $row;
+			}
+		}
+
+		return new Report( $consumer, $rows );
+	}
+
+	/**
 	 * The consumer label.
 	 */
 	public function consumer(): string {
