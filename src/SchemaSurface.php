@@ -56,6 +56,30 @@ final class SchemaSurface {
 	}
 
 	/**
+	 * Which of the requested classes do not load (autoload attempted).
+	 *
+	 * A requested Schema that does not load yields no surface, which would silently
+	 * understate the declared flags - and so understate gaps, a false "ready". Callers
+	 * (the CLI, a repo's readiness test) use this to fail loudly instead: a missing
+	 * class is a misconfiguration, not a clean score.
+	 *
+	 * @param list<string> $schema_classes Fully-qualified Schema class names.
+	 * @return list<string> The subset that could not be loaded.
+	 */
+	public static function missing( array $schema_classes ): array {
+
+		$missing = array();
+
+		foreach ( $schema_classes as $class ) {
+			if ( ! class_exists( $class ) ) {
+				$missing[] = $class;
+			}
+		}
+
+		return $missing;
+	}
+
+	/**
 	 * Read a Schema class's declared `columns` array without constructing it.
 	 *
 	 * @param string $class Fully-qualified Schema class name.

@@ -67,6 +67,14 @@ if ( empty( $classes ) ) {
 	exit( 2 );
 }
 
+// A requested class that does not load would silently understate the surface (and so
+// understate gaps, a false "ready"). Fail loudly instead of scoring a phantom 100%.
+$missing = SchemaSurface::missing( $classes );
+if ( ! empty( $missing ) ) {
+	fwrite( STDERR, "these schema classes did not load (autoload/bootstrap issue):\n  " . implode( "\n  ", $missing ) . "\n" );
+	exit( 2 );
+}
+
 $supported = CoreCapabilities::fromCore();
 $declared  = SchemaSurface::fromClasses( $classes );
 $report    = FlagReadiness::score( $consumer, $supported, $declared );

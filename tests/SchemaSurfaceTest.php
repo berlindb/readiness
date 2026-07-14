@@ -45,4 +45,12 @@ final class SchemaSurfaceTest extends TestCase {
 
 		$this->assertSame( array(), $declared );
 	}
+
+	public function test_missing_reports_classes_that_do_not_load(): void {
+		$missing = SchemaSurface::missing( array( FixtureSchema::class, 'No\\Such\\Schema' ) );
+
+		// The real class loads; the bogus one is reported so callers fail loudly
+		// instead of scoring a phantom 100% off an empty surface.
+		$this->assertSame( array( 'No\\Such\\Schema' ), $missing );
+	}
 }
