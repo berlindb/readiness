@@ -1,0 +1,95 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Readiness CLI.
+ *
+ * Prints a consumer's flag-readiness report and, with --json=<path>, writes the
+ * shields endpoint badge payload. Meant to run inside a bootstrap where core and the
+ * consumer's Schema classes are autoloadable (e.g. a parity repo's WP test env), so it
+ * can reflect live capabilities and the declared surface.
+ *
+ * Usage:
+ *   readiness --consumer=EDD --schemas=EDD\Database\Schemas\Orders,EDD\Database\Schemas\Customers
+ *   readiness --consumer=EDD --schemas-file=schemas.txt --json=.readiness/edd.json
+ *
+ * @package BerlinDB\Readiness
+ * @license GPL-2.0-or-later
+ */
+
+declare( strict_types = 1 );
+
+use BerlinDB\Readiness\Badge;
+use BerlinDB\Readiness\CoreCapabilities;
+use BerlinDB\Readiness\FlagReadiness;
+use BerlinDB\Readiness\Report;
+use BerlinDB\Readiness\SchemaSurface;
+
+foreach ( array( __DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php' ) as $autoload ) {
+	if ( is_readable( $autoload ) ) {
+		require_once $autoload;
+		break;
+	}
+}
+
+/**
+ * Read a --key=value option from argv.
+ *
+ * @param string $name    Option name.
+ * @param string $default Fallback.
+ * @return string
+ */
+function opt( string $name, string $default = '' ): string {
+	foreach ( $GLOBALS['argv'] as $arg ) {
+		if ( str_starts_with( $arg, "--{$name}=" ) ) {
+			return substr( $arg, strlen( $name ) + 3 );
+		}
+	}
+
+	return $default;
+}
+
+$consumer = opt( 'consumer', 'consumer' );
+$json     = opt( 'json' );
+
+// Resolve the consumer's Schema class list from --schemas or --schemas-file.
+$schemas_arg = opt( 'schemas' );
+$file        = opt( 'schemas-file' );
+
+$classes = array();
+if ( '' !== $schemas_arg ) {
+	$classes = array_filter( array_map( 'trim', explode( ',', $schemas_arg ) ) );
+} elseif ( '' !== $file && is_readable( $file ) ) {
+	$classes = array_filter( array_map( 'trim', file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) ) );
+}
+
+if ( empty( $classes ) ) {
+	fwrite( STDERR, "no schema classes given (use --schemas=... or --schemas-file=...)\n" );
+	exit( 2 );
+}
+
+$supported = CoreCapabilities::fromCore();
+$declared  = SchemaSurface::fromClasses( $classes );
+$report    = FlagReadiness::score( $consumer, $supported, $declared );
+
+// Human-readable summary.
+printf( "\n== Behavioral readiness (flags): %s ==\n", $report->consumer() );
+printf( "  core-recognized: %d   declared: %d\n\n", count( $supported ), $report->total() );
+foreach ( $report->rows() as $flag => $row ) {
+	$mark = ( Report::GAP === $row['status'] ) ? 'GAP' : $row['status'];
+	printf( "  %-16s %-11s %-14s %d\n", $flag, $mark, $row['via'], $row['columns'] );
+}
+printf( "\n  READINESS: %s%%  (%d/%d)\n", $report->percent(), $report->covered(), $report->total() );
+printf( "  GAPS: %s\n\n", $report->is_ready() ? '(none)' : implode( ', ', $report->gaps() ) );
+
+// Optional shields endpoint badge JSON.
+if ( '' !== $json ) {
+	$dir = dirname( $json );
+	if ( ! is_dir( $dir ) ) {
+		mkdir( $dir, 0777, true );
+	}
+	file_put_contents( $json, Badge::toJson( $report ) );
+	printf( "  wrote badge -> %s\n\n", $json );
+}
+
+// Non-zero exit on a gap so CI fails loudly.
+exit( $report->is_ready() ? 0 : 1 );

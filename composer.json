@@ -1,0 +1,25 @@
+{
+    "name": "berlindb/readiness",
+    "description": "Measures how faithfully shared berlindb/core can express a consumer's declared behavioral surface - a reunification readiness score, per consumer.",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        { "name": "BerlinDB", "homepage": "https://github.com/berlindb" }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6 || ^10.5"
+    },
+    "autoload": {
+        "psr-4": { "BerlinDB\\Readiness\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "BerlinDB\\Readiness\\Tests\\": "tests/" }
+    },
+    "bin": [ "bin/readiness" ],
+    "config": {
+        "sort-packages": true
+    }
+}
