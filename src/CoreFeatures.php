@@ -24,7 +24,8 @@ use Throwable;
  * dropped core feature turns a badge red.
  *
  * Feature keys (dotted): `relationship.belongs_to`, `relationship.has_many`,
- * `relationship.many_to_many`, `relationship.get_related`, `meta.store`, `meta.preset`.
+ * `relationship.many_to_many`, `relationship.get_related`, `relationship.conditioned`,
+ * `meta.store`, `meta.preset`.
  */
 final class CoreFeatures {
 
@@ -38,6 +39,7 @@ final class CoreFeatures {
 		'relationship.has_many',
 		'relationship.many_to_many',
 		'relationship.get_related',
+		'relationship.conditioned',
 		'meta.store',
 		'meta.preset',
 	);
@@ -69,6 +71,11 @@ final class CoreFeatures {
 			// The accessor that walks a relationship at read time.
 			if ( method_exists( "{$namespace}\\Query", 'get_related' ) ) {
 				$features[] = 'relationship.get_related';
+			}
+
+			// A relationship can carry a fixed condition (scoped / polymorphic ownership).
+			if ( method_exists( $relationship, 'get_condition' ) ) {
+				$features[] = 'relationship.conditioned';
 			}
 
 			// Custom meta store (a sibling table addressed as a meta relationship).

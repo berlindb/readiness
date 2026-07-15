@@ -35,6 +35,7 @@ final class CapabilityReadinessTest extends TestCase {
 			array( 'name' => 'order_item -> order',         'kind' => 'belongs_to', 'requires' => 'relationship.belongs_to' ),
 			array( 'name' => 'get_related() traversal',     'kind' => 'accessor', 'requires' => 'relationship.get_related' ),
 			array( 'name' => 'ordermeta / customermeta',    'kind' => 'meta',     'requires' => 'meta.store' ),
+			array( 'name' => 'polymorphic ownership',       'kind' => 'relationship-modeling', 'requires' => 'relationship.conditioned', 'scope' => 'modeling' ),
 		);
 	}
 
@@ -43,7 +44,7 @@ final class CapabilityReadinessTest extends TestCase {
 
 		$this->assertTrue( $report->is_ready() );
 		$this->assertSame( 100.0, $report->percent() );
-		$this->assertSame( 7, $report->total() );
+		$this->assertSame( 8, $report->total() );
 	}
 
 	public function test_a_missing_core_feature_is_a_gap(): void {
@@ -78,8 +79,8 @@ final class CapabilityReadinessTest extends TestCase {
 
 		$combined = Report::combine( 'EDD', $flags, $matrix );
 
-		// 2 flags + 7 capabilities, all covered.
-		$this->assertSame( 9, $combined->total() );
+		// 2 flags + 8 capabilities, all covered.
+		$this->assertSame( 10, $combined->total() );
 		$this->assertSame( 100.0, $combined->percent() );
 		$this->assertTrue( $combined->is_ready() );
 	}
@@ -98,7 +99,7 @@ final class CapabilityReadinessTest extends TestCase {
 		$matrix = array(
 			array( 'name' => 'join collection', 'requires' => 'relationship.has_many' ),               // both (default)
 			array( 'name' => 'meta',            'requires' => 'meta.store' ),                            // both (default)
-			array( 'name' => 'polymorphic',     'requires' => 'relationship.conditioned', 'scope' => 'modeling' ),
+			array( 'name' => 'polymorphic',     'requires' => 'relationship.unsupported_xyz', 'scope' => 'modeling' ),
 		);
 
 		// Behavioral view excludes the modeling-only entry -> everything it scores is supported.
@@ -119,6 +120,7 @@ final class CapabilityReadinessTest extends TestCase {
 
 	public function test_fallback_feature_set_is_non_empty(): void {
 		$this->assertNotEmpty( CoreFeatures::FALLBACK );
+		$this->assertContains( 'relationship.conditioned', CoreFeatures::FALLBACK );
 		$this->assertContains( 'relationship.has_many', CoreFeatures::FALLBACK );
 		$this->assertContains( 'meta.store', CoreFeatures::FALLBACK );
 	}
