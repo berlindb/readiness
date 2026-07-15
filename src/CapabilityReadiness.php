@@ -21,7 +21,11 @@ namespace BerlinDB\Readiness;
  * guard - if core drops a feature a mapped entry relies on, the entry becomes a gap.
  *
  * A matrix entry is an array: `array{name: string, requires: string, kind?: string,
- * note?: string}`. `requires` is a {@see CoreFeatures} key (e.g. `relationship.has_many`).
+ * scope?: string, note?: string}`. `requires` is a {@see CoreFeatures} key (e.g.
+ * `relationship.has_many`). `scope` is `behavioral` (only affects whether the plugin's
+ * QUERIES run), `modeling` (only affects whether the schema can be MODELED with faithful
+ * relationships), or `both` (default) - so one matrix yields two honest scores: a
+ * behavioral badge and a modeling badge.
  */
 final class CapabilityReadiness {
 
@@ -31,9 +35,12 @@ final class CapabilityReadiness {
 	 * @param string                    $consumer Consumer label.
 	 * @param list<string>              $features Core feature keys (from {@see CoreFeatures::fromCore()}).
 	 * @param list<array<string,mixed>> $matrix   The curated capability entries.
+	 * @param string|null               $scope    Restrict to entries in this dimension ('behavioral' |
+	 *                                             'modeling'); null scores every entry. An entry with no
+	 *                                             `scope` counts as `both`, so it is always included.
 	 * @return Report
 	 */
-	public static function score( string $consumer, array $features, array $matrix ): Report {
+	public static function score( string $consumer, array $features, array $matrix, ?string $scope = null ): Report {
 
 		$rows = array();
 
@@ -41,6 +48,13 @@ final class CapabilityReadiness {
 
 			// Skip malformed entries rather than miscount them.
 			if ( ! is_array( $entry ) || empty( $entry['name'] ) || ! is_string( $entry['name'] ) ) {
+				continue;
+			}
+
+			// Restrict to the requested dimension; a `both` (or absent) entry is always in scope.
+			$entry_scope = ( isset( $entry['scope'] ) && is_string( $entry['scope'] ) ) ? $entry['scope'] : 'both';
+
+			if ( ( null !== $scope ) && ( 'both' !== $entry_scope ) && ( $scope !== $entry_scope ) ) {
 				continue;
 			}
 

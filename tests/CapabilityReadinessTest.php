@@ -94,6 +94,29 @@ final class CapabilityReadinessTest extends TestCase {
 		$this->assertContains( 'exotic_flag', $combined->gaps() );
 	}
 
+	public function test_scope_splits_behavioral_from_modeling(): void {
+		$matrix = array(
+			array( 'name' => 'join collection', 'requires' => 'relationship.has_many' ),               // both (default)
+			array( 'name' => 'meta',            'requires' => 'meta.store' ),                            // both (default)
+			array( 'name' => 'polymorphic',     'requires' => 'relationship.conditioned', 'scope' => 'modeling' ),
+		);
+
+		// Behavioral view excludes the modeling-only entry -> everything it scores is supported.
+		$behavioral = CapabilityReadiness::score( 'X', CoreFeatures::FALLBACK, $matrix, 'behavioral' );
+		$this->assertSame( 2, $behavioral->total() );
+		$this->assertTrue( $behavioral->is_ready() );
+		$this->assertSame( 100.0, $behavioral->percent() );
+
+		// Modeling view includes it -> the missing feature is a gap.
+		$modeling = CapabilityReadiness::score( 'X', CoreFeatures::FALLBACK, $matrix, 'modeling' );
+		$this->assertSame( 3, $modeling->total() );
+		$this->assertSame( array( 'polymorphic' ), $modeling->gaps() );
+
+		// No scope scores every entry.
+		$all = CapabilityReadiness::score( 'X', CoreFeatures::FALLBACK, $matrix );
+		$this->assertSame( 3, $all->total() );
+	}
+
 	public function test_fallback_feature_set_is_non_empty(): void {
 		$this->assertNotEmpty( CoreFeatures::FALLBACK );
 		$this->assertContains( 'relationship.has_many', CoreFeatures::FALLBACK );
