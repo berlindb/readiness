@@ -11,10 +11,20 @@ all the per-column *flags* a consumer declares (`sortable`, `searchable`, `in`,
 core recognize? A flag core cannot express is a **gap** - a concrete item on the path to
 migrating that plugin onto shared core.
 
-> **Scope (v1): column flags.** Relationships and meta are measured separately and are
-> not in this version - first-generation forks express them as imperative SQL joins, not
-> declared config, so they need a curated capability matrix rather than an automatic
-> scan. See [Roadmap](#roadmap).
+The score has two dimensions, reported as two badge chips:
+
+- **Column flags** - auto-scanned from a consumer's `Schema` classes (`FlagReadiness` +
+  `SchemaSurface` vs `CoreCapabilities`).
+- **Relationships & meta** - scored from a curated per-consumer capability matrix
+  (`CapabilityReadiness` vs `CoreFeatures`), because first-generation forks express these
+  imperatively (hand-coded JOINs, separate meta tables) with nothing to auto-scan. Each
+  matrix entry maps a pattern (e.g. `order -> order_items`, polymorphic ownership, WP-style
+  meta) to the core feature that expresses it.
+
+A **behavioral** score asks "can core RUN the plugin's queries?"; a **modeling** score asks
+"can core MODEL its schema with faithful relationships?" (an entry can be scoped to one
+dimension). Either way, a pattern core cannot express is a **gap** - a concrete item on the
+path to migrating that plugin onto shared core.
 
 ## What the score means (and does not)
 
@@ -93,16 +103,20 @@ else orange), so a drop is visible at a glance.
 - `FlagReadiness::score()` - a pure function comparing the two, classifying each declared
   flag `supported` / `equivalent` (a legacy spelling core expresses under another name,
   e.g. `primary_key` -> `primary`) / `gap`, and returning an immutable `Report`.
+- `CoreFeatures::fromCore()` - probes core for the relationship / meta features it provides
+  (`relationship.has_many`, `relationship.conditioned`, `meta.store`, ...) by reflection.
+- `CapabilityReadiness::score()` - scores a curated matrix (`{ name, requires, scope }`
+  entries) against those features, splitting `behavioral` vs `modeling` per entry's `scope`.
+- `Report::combine()` - folds the flag and matrix reports into one score / badge.
 - `Badge` - renders a `Report` as the shields payload.
 
-The scorer is pure and unit-tested with plain arrays; the reflection collectors run
+The scorers are pure and unit-tested with plain arrays; the reflection collectors run
 inside the consumer's bootstrap where the real classes are loaded.
 
 ## Roadmap
 
-- **Relationships & meta.** A curated per-consumer capability matrix (order->items
-  `has_many`, meta tables -> core meta store, ...), each mapped to a core feature and
-  checked for existence - the faithful way to score an imperative surface.
+- **Richer condition/predicate coverage** as core grows it (e.g. operators / `IN` on
+  conditioned relationships, per berlindb/core #246).
 - **Aggregate dashboard.** A combined view / wiki page across all consumers.
 
 ## License
